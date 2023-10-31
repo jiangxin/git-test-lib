@@ -59,18 +59,9 @@ export TEST_TARGET_DIRECTORY
 
 if test "$TEST_DIRECTORY" = "$TEST_TARGET_DIRECTORY"
 then
-	echo "PANIC: Running in a $TEST_DIRECTORY that doesn't end in '/t'?" >&2
+	echo "PANIC: Identical TEST_DIRECTORY and TEST_TARGET_DIRECTORY: $TEST_DIRECTORY" >&2
+	echo "PANIC: Please define a proper TEST_TARGET_DIRECTORY environment" >&2
 	exit 1
-fi
-if test -f "$TEST_TARGET_DIRECTORY/GIT-BUILD-DIR"
-then
-	TEST_TARGET_DIRECTORY="$(cat "$TEST_TARGET_DIRECTORY/GIT-BUILD-DIR")" || exit 1
-	# On Windows, we must convert Windows paths lest they contain a colon
-	case "$(uname -s)" in
-	*MINGW*)
-		TEST_TARGET_DIRECTORY="$(cygpath -au "$TEST_TARGET_DIRECTORY")"
-		;;
-	esac
 fi
 
 # TEST_LIB_DIRECTORY is the source directory of test code and library.
@@ -170,20 +161,6 @@ fi
 # transitory "git init" warning under --verbose.
 : ${GIT_TEST_DEFAULT_INITIAL_BRANCH_NAME:=master}
 export GIT_TEST_DEFAULT_INITIAL_BRANCH_NAME
-
-################################################################
-# It appears that people try to run tests without building...
-"${GIT_TEST_INSTALLED:-$TEST_TARGET_DIRECTORY}/git$X" >/dev/null
-if test $? != 1
-then
-	if test -n "$GIT_TEST_INSTALLED"
-	then
-		echo >&2 "error: there is no working Git at '$GIT_TEST_INSTALLED'"
-	else
-		echo >&2 'error: you do not seem to have built git yet.'
-	fi
-	exit 1
-fi
 
 store_arg_to=
 opt_required_arg=
@@ -1435,119 +1412,11 @@ test_done () {
 	esac
 }
 
-if test -n "$valgrind"
-then
-	make_symlink () {
-		test -h "$2" &&
-		test "$1" = "$(readlink "$2")" || {
-			# be super paranoid
-			if mkdir "$2".lock
-			then
-				rm -f "$2" &&
-				ln -s "$1" "$2" &&
-				rm -r "$2".lock
-			else
-				while test -d "$2".lock
-				do
-					say "Waiting for lock on $2."
-					sleep 1
-				done
-			fi
-		}
-	}
-
-	make_valgrind_symlink () {
-		# handle only executables, unless they are shell libraries that
-		# need to be in the exec-path.
-		test -x "$1" ||
-		test "# " = "$(test_copy_bytes 2 <"$1")" ||
-		return;
-
-		base=$(basename "$1")
-		case "$base" in
-		test-*)
-			symlink_target="$TEST_LIB_DIRECTORY/helper/$base"
-			;;
-		*)
-			symlink_target="$TEST_TARGET_DIRECTORY/$base"
-			;;
-		esac
-		# do not override scripts
-		if test -x "$symlink_target" &&
-		    test ! -d "$symlink_target" &&
-		    test "#!" != "$(test_copy_bytes 2 <"$symlink_target")"
-		then
-			symlink_target=../valgrind.sh
-		fi
-		case "$base" in
-		*.sh|*.perl)
-			symlink_target=../unprocessed-script
-		esac
-		# create the link, or replace it if it is out of date
-		make_symlink "$symlink_target" "$GIT_VALGRIND/bin/$base" || exit
-	}
-
-	# override all git executables in TEST_DIRECTORY/..
-	GIT_VALGRIND=$TEST_DIRECTORY/valgrind
-	mkdir -p "$GIT_VALGRIND"/bin
-	for file in $TEST_TARGET_DIRECTORY/git* $TEST_LIB_DIRECTORY/helper/test-*
-	do
-		make_valgrind_symlink $file
-	done
-	# special-case the mergetools loadables
-	make_symlink "$TEST_TARGET_DIRECTORY"/mergetools "$GIT_VALGRIND/bin/mergetools"
-	OLDIFS=$IFS
-	IFS=:
-	for path in $PATH
-	do
-		ls "$path"/git-* 2> /dev/null |
-		while read file
-		do
-			make_valgrind_symlink "$file"
-		done
-	done
-	IFS=$OLDIFS
-	PATH=$GIT_VALGRIND/bin:$PATH
-	GIT_EXEC_PATH=$GIT_VALGRIND/bin
-	export GIT_VALGRIND
-	GIT_VALGRIND_MODE="$valgrind"
-	export GIT_VALGRIND_MODE
-	GIT_VALGRIND_ENABLED=t
-	test -n "$valgrind_only" && GIT_VALGRIND_ENABLED=
-	export GIT_VALGRIND_ENABLED
-elif test -n "$GIT_TEST_INSTALLED"
-then
-	GIT_EXEC_PATH=$($GIT_TEST_INSTALLED/git --exec-path)  ||
-	error "Cannot run git from $GIT_TEST_INSTALLED."
-	PATH=$GIT_TEST_INSTALLED:$TEST_LIB_DIRECTORY/helper:$PATH
-	GIT_EXEC_PATH=${GIT_TEST_EXEC_PATH:-$GIT_EXEC_PATH}
-else # normal case, use ../bin-wrappers only unless $with_dashes:
-	if test -n "$no_bin_wrappers"
-	then
-		with_dashes=t
-	else
-		git_bin_dir="$TEST_TARGET_DIRECTORY/bin-wrappers"
-		if ! test -x "$git_bin_dir/git"
-		then
-			if test -z "$with_dashes"
-			then
-				say "$git_bin_dir/git is not executable; using GIT_EXEC_PATH"
-			fi
-			with_dashes=t
-		fi
-		PATH="$git_bin_dir:$PATH"
-	fi
-	GIT_EXEC_PATH=$TEST_TARGET_DIRECTORY
-	if test -n "$with_dashes"
-	then
-		PATH="$TEST_TARGET_DIRECTORY:$TEST_LIB_DIRECTORY/helper:$PATH"
-	fi
-fi
-GIT_TEMPLATE_DIR="$TEST_TARGET_DIRECTORY"/templates/blt
+PATH="$TEST_TARGET_DIRECTORY:$TEST_LIB_DIRECTORY/helper:$PATH"
 GIT_CONFIG_NOSYSTEM=1
 GIT_ATTR_NOSYSTEM=1
 GIT_CEILING_DIRECTORIES="$TRASH_DIRECTORY/.."
-export PATH GIT_EXEC_PATH GIT_TEMPLATE_DIR GIT_CONFIG_NOSYSTEM GIT_ATTR_NOSYSTEM GIT_CEILING_DIRECTORIES
+export PATH GIT_CONFIG_NOSYSTEM GIT_ATTR_NOSYSTEM GIT_CEILING_DIRECTORIES
 
 if test -z "$GIT_TEST_CMP"
 then
@@ -1557,17 +1426,6 @@ then
 	else
 		GIT_TEST_CMP="$DIFF -u"
 	fi
-fi
-
-GITPERLLIB="$TEST_TARGET_DIRECTORY"/perl/build/lib
-export GITPERLLIB
-test -d "$TEST_TARGET_DIRECTORY"/templates/blt || {
-	BAIL_OUT "You haven't built things yet, have you?"
-}
-
-if ! test -x "$TEST_LIB_DIRECTORY"/helper/test-tool$X
-then
-	BAIL_OUT 'You need to build test-tool; Run "make helper/test-tool" in the source (toplevel) directory'
 fi
 
 # Are we running this test at all?
