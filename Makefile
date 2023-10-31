@@ -1,3 +1,6 @@
+TEST_TARGET_DIRECTORY=..
+export TEST_TARGET_DIRECTORY
+
 # Import tree-wide shared Makefile behavior and libraries
 include ../shared.mak
 

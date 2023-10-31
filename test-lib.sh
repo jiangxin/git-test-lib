@@ -29,8 +29,8 @@ else
 	# different. Those tests still set "$TEST_DIRECTORY" to the
 	# same path.
 	#
-	# See use of "$GIT_BUILD_DIR" and "$TEST_DIRECTORY" below for
-	# hard assumptions about "$GIT_BUILD_DIR/t" existing and being
+	# See use of "$TEST_TARGET_DIRECTORY" and "$TEST_DIRECTORY" below for
+	# hard assumptions about "$TEST_TARGET_DIRECTORY/t" existing and being
 	# the "$TEST_DIRECTORY", and e.g. "$TEST_DIRECTORY/helper"
 	# needing to exist.
 	TEST_DIRECTORY=$(cd "$TEST_DIRECTORY" && pwd) || exit 1
@@ -46,19 +46,29 @@ then
 	# elsewhere
 	TEST_OUTPUT_DIRECTORY=$TEST_DIRECTORY
 fi
-GIT_BUILD_DIR="${TEST_DIRECTORY%/t}"
-if test "$TEST_DIRECTORY" = "$GIT_BUILD_DIR"
+
+# The binaries we want to test are located in TEST_TARGET_DIRECTORY.
+# Set default value for it and export it.
+if test -z "$TEST_TARGET_DIRECTORY"
+then
+	TEST_TARGET_DIRECTORY="$(cd "${TEST_DIRECTORY%/t}" && pwd)"
+else
+	TEST_TARGET_DIRECTORY="$(cd "$TEST_TARGET_DIRECTORY" && pwd)"
+fi
+export TEST_TARGET_DIRECTORY
+
+if test "$TEST_DIRECTORY" = "$TEST_TARGET_DIRECTORY"
 then
 	echo "PANIC: Running in a $TEST_DIRECTORY that doesn't end in '/t'?" >&2
 	exit 1
 fi
-if test -f "$GIT_BUILD_DIR/GIT-BUILD-DIR"
+if test -f "$TEST_TARGET_DIRECTORY/GIT-BUILD-DIR"
 then
-	GIT_BUILD_DIR="$(cat "$GIT_BUILD_DIR/GIT-BUILD-DIR")" || exit 1
+	TEST_TARGET_DIRECTORY="$(cat "$TEST_TARGET_DIRECTORY/GIT-BUILD-DIR")" || exit 1
 	# On Windows, we must convert Windows paths lest they contain a colon
 	case "$(uname -s)" in
 	*MINGW*)
-		GIT_BUILD_DIR="$(cygpath -au "$GIT_BUILD_DIR")"
+		TEST_TARGET_DIRECTORY="$(cygpath -au "$TEST_TARGET_DIRECTORY")"
 		;;
 	esac
 fi
@@ -79,7 +89,7 @@ prepend_var () {
 # problems. The GIT_SAN_OPTIONS variable can be used to set common
 # defaults shared between [AL]SAN_OPTIONS.
 prepend_var GIT_SAN_OPTIONS : abort_on_error=1
-prepend_var GIT_SAN_OPTIONS : strip_path_prefix="$GIT_BUILD_DIR/"
+prepend_var GIT_SAN_OPTIONS : strip_path_prefix="$TEST_TARGET_DIRECTORY/"
 
 # If we were built with ASAN, it may complain about leaks
 # of program-lifetime variables. Disable it by default to lower
@@ -97,12 +107,12 @@ export LSAN_OPTIONS
 prepend_var UBSAN_OPTIONS : $GIT_SAN_OPTIONS
 export UBSAN_OPTIONS
 
-if test ! -f "$GIT_BUILD_DIR"/GIT-BUILD-OPTIONS
+if test ! -f "$TEST_TARGET_DIRECTORY"/GIT-BUILD-OPTIONS
 then
 	echo >&2 'error: GIT-BUILD-OPTIONS missing (has Git been built?).'
 	exit 1
 fi
-. "$GIT_BUILD_DIR"/GIT-BUILD-OPTIONS
+. "$TEST_TARGET_DIRECTORY"/GIT-BUILD-OPTIONS
 export PERL_PATH SHELL_PATH
 
 : "${PYTHON_PATH:=$(which python)}"
@@ -131,7 +141,7 @@ export GIT_TEST_DEFAULT_INITIAL_BRANCH_NAME
 
 ################################################################
 # It appears that people try to run tests without building...
-"${GIT_TEST_INSTALLED:-$GIT_BUILD_DIR}/git$X" >/dev/null
+"${GIT_TEST_INSTALLED:-$TEST_TARGET_DIRECTORY}/git$X" >/dev/null
 if test $? != 1
 then
 	if test -n "$GIT_TEST_INSTALLED"
@@ -1424,10 +1434,10 @@ then
 		base=$(basename "$1")
 		case "$base" in
 		test-*)
-			symlink_target="$GIT_BUILD_DIR/t/helper/$base"
+			symlink_target="$TEST_TARGET_DIRECTORY/t/helper/$base"
 			;;
 		*)
-			symlink_target="$GIT_BUILD_DIR/$base"
+			symlink_target="$TEST_TARGET_DIRECTORY/$base"
 			;;
 		esac
 		# do not override scripts
@@ -1448,12 +1458,12 @@ then
 	# override all git executables in TEST_DIRECTORY/..
 	GIT_VALGRIND=$TEST_DIRECTORY/valgrind
 	mkdir -p "$GIT_VALGRIND"/bin
-	for file in $GIT_BUILD_DIR/git* $GIT_BUILD_DIR/t/helper/test-*
+	for file in $TEST_TARGET_DIRECTORY/git* $TEST_TARGET_DIRECTORY/t/helper/test-*
 	do
 		make_valgrind_symlink $file
 	done
 	# special-case the mergetools loadables
-	make_symlink "$GIT_BUILD_DIR"/mergetools "$GIT_VALGRIND/bin/mergetools"
+	make_symlink "$TEST_TARGET_DIRECTORY"/mergetools "$GIT_VALGRIND/bin/mergetools"
 	OLDIFS=$IFS
 	IFS=:
 	for path in $PATH
@@ -1477,14 +1487,14 @@ elif test -n "$GIT_TEST_INSTALLED"
 then
 	GIT_EXEC_PATH=$($GIT_TEST_INSTALLED/git --exec-path)  ||
 	error "Cannot run git from $GIT_TEST_INSTALLED."
-	PATH=$GIT_TEST_INSTALLED:$GIT_BUILD_DIR/t/helper:$PATH
+	PATH=$GIT_TEST_INSTALLED:$TEST_TARGET_DIRECTORY/t/helper:$PATH
 	GIT_EXEC_PATH=${GIT_TEST_EXEC_PATH:-$GIT_EXEC_PATH}
 else # normal case, use ../bin-wrappers only unless $with_dashes:
 	if test -n "$no_bin_wrappers"
 	then
 		with_dashes=t
 	else
-		git_bin_dir="$GIT_BUILD_DIR/bin-wrappers"
+		git_bin_dir="$TEST_TARGET_DIRECTORY/bin-wrappers"
 		if ! test -x "$git_bin_dir/git"
 		then
 			if test -z "$with_dashes"
@@ -1495,13 +1505,13 @@ else # normal case, use ../bin-wrappers only unless $with_dashes:
 		fi
 		PATH="$git_bin_dir:$PATH"
 	fi
-	GIT_EXEC_PATH=$GIT_BUILD_DIR
+	GIT_EXEC_PATH=$TEST_TARGET_DIRECTORY
 	if test -n "$with_dashes"
 	then
-		PATH="$GIT_BUILD_DIR:$GIT_BUILD_DIR/t/helper:$PATH"
+		PATH="$TEST_TARGET_DIRECTORY:$TEST_TARGET_DIRECTORY/t/helper:$PATH"
 	fi
 fi
-GIT_TEMPLATE_DIR="$GIT_BUILD_DIR"/templates/blt
+GIT_TEMPLATE_DIR="$TEST_TARGET_DIRECTORY"/templates/blt
 GIT_CONFIG_NOSYSTEM=1
 GIT_ATTR_NOSYSTEM=1
 GIT_CEILING_DIRECTORIES="$TRASH_DIRECTORY/.."
@@ -1517,13 +1527,13 @@ then
 	fi
 fi
 
-GITPERLLIB="$GIT_BUILD_DIR"/perl/build/lib
+GITPERLLIB="$TEST_TARGET_DIRECTORY"/perl/build/lib
 export GITPERLLIB
-test -d "$GIT_BUILD_DIR"/templates/blt || {
+test -d "$TEST_TARGET_DIRECTORY"/templates/blt || {
 	BAIL_OUT "You haven't built things yet, have you?"
 }
 
-if ! test -x "$GIT_BUILD_DIR"/t/helper/test-tool$X
+if ! test -x "$TEST_TARGET_DIRECTORY"/t/helper/test-tool$X
 then
 	BAIL_OUT 'You need to build test-tool; Run "make t/helper/test-tool" in the source (toplevel) directory'
 fi

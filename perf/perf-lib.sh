@@ -44,12 +44,12 @@ fi
 
 # Variables from test-lib that are normally internal to the tests; we
 # need to export them for test_perf subshells
-export TEST_DIRECTORY TRASH_DIRECTORY GIT_BUILD_DIR GIT_TEST_CMP
+export TEST_DIRECTORY TRASH_DIRECTORY TEST_TARGET_DIRECTORY GIT_TEST_CMP
 
-MODERN_GIT=$GIT_BUILD_DIR/bin-wrappers/git
+MODERN_GIT=$TEST_TARGET_DIRECTORY/bin-wrappers/git
 export MODERN_GIT
 
-MODERN_SCALAR=$GIT_BUILD_DIR/bin-wrappers/scalar
+MODERN_SCALAR=$TEST_TARGET_DIRECTORY/bin-wrappers/scalar
 export MODERN_SCALAR
 
 perf_results_dir=$TEST_RESULTS_DIR
@@ -149,8 +149,8 @@ test_perf_default_repo () {
 	test_perf_create_repo_from "${1:-$TRASH_DIRECTORY}" "$GIT_PERF_REPO"
 }
 test_perf_large_repo () {
-	if test "$GIT_PERF_LARGE_REPO" = "$GIT_BUILD_DIR"; then
-		echo "warning: \$GIT_PERF_LARGE_REPO is \$GIT_BUILD_DIR." >&2
+	if test "$GIT_PERF_LARGE_REPO" = "$TEST_TARGET_DIRECTORY"; then
+		echo "warning: \$GIT_PERF_LARGE_REPO is \$TEST_TARGET_DIRECTORY." >&2
 		echo "warning: This will work, but may not be a sufficiently large repo" >&2
 		echo "warning: for representative measurements." >&2
 	fi
