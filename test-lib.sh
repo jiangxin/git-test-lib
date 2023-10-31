@@ -1688,6 +1688,36 @@ else
 	mkdir -p "$TRASH_DIRECTORY"
 fi
 
+#
+# Load any extensions in $testdir/test-lib.d/*.sh
+#
+if test -d "${TEST_DIRECTORY}/test-lib.d"
+then
+	TEST_EXTENSION_DIRECTORY="${TEST_DIRECTORY}/test-lib.d"
+else
+	# See sharness project: https://github.com/felipec/sharness
+	TEST_EXTENSION_DIRECTORY="${TEST_DIRECTORY}/sharness.d"
+fi
+if test -d "${TEST_EXTENSION_DIRECTORY}"
+then
+	for file in "${TEST_EXTENSION_DIRECTORY}"/*.sh
+	do
+		# Ensure glob was not an empty match:
+		test -e "${file}" || break
+
+		if test -n "$debug"
+		then
+			BAIL_OUT "sharness: loading extensions from ${file}"
+		fi
+		# shellcheck disable=SC1090
+		. "${file}"
+		if test $? != 0
+		then
+			BAIL_OUT "sharness: Error loading ${file}. Aborting."
+		fi
+	done
+fi
+
 # Use -P to resolve symlinks in our working directory so that the cwd
 # in subprocesses like git equals our $PWD (for pathname comparisons).
 cd -P "$TRASH_DIRECTORY" || BAIL_OUT "cannot cd -P to \"$TRASH_DIRECTORY\""
