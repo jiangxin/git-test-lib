@@ -19,7 +19,7 @@ modification *should* take notice and update the test vectors here.
 '
 
 . ./test-lib.sh
-. "$TEST_DIRECTORY"/lib-subtest.sh
+. "$TEST_LIB_DIRECTORY"/lib-subtest.sh
 
 try_local_xy () {
 	local x="local" y="alsolocal" &&

@@ -1663,8 +1663,8 @@ test_detect_hash () {
 # test_oid.
 test_oid_init () {
 	test -n "$test_hash_algo" || test_detect_hash &&
-	test_oid_cache <"$TEST_DIRECTORY/oid-info/hash-info" &&
-	test_oid_cache <"$TEST_DIRECTORY/oid-info/oid"
+	test_oid_cache <"$TEST_LIB_DIRECTORY/oid-info/hash-info" &&
+	test_oid_cache <"$TEST_LIB_DIRECTORY/oid-info/oid"
 }
 
 # Load key-value pairs from stdin suitable for use with test_oid.  Blank lines

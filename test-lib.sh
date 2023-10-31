@@ -31,7 +31,7 @@ else
 	#
 	# See use of "$TEST_TARGET_DIRECTORY" and "$TEST_DIRECTORY" below for
 	# hard assumptions about "$TEST_TARGET_DIRECTORY/t" existing and being
-	# the "$TEST_DIRECTORY", and e.g. "$TEST_DIRECTORY/helper"
+	# the "$TEST_DIRECTORY", and e.g. "$TEST_DIRECTORY/t0000-basic.sh"
 	# needing to exist.
 	TEST_DIRECTORY=$(cd "$TEST_DIRECTORY" && pwd) || exit 1
 fi
@@ -72,6 +72,38 @@ then
 		;;
 	esac
 fi
+
+# TEST_LIB_DIRECTORY is the source directory of test code and library.
+# This directory may be different from the directory in which tests are
+# being run.
+if test -z "$TEST_LIB_DIRECTORY"
+then
+	if test -n "$BASH_SOURCE"
+	then
+		TEST_LIB_DIRECTORY=$(cd "$(dirname "${BASH_SOURCE}")" && pwd)
+	else
+		if test -f lib/test-lib.sh
+		then
+			TEST_LIB_DIRECTORY=$(cd lib && pwd)
+		elif test -f ./test-lib.sh
+		then
+			TEST_LIB_DIRECTORY=$(pwd)
+		elif test -f ../test-lib.sh
+		then
+			TEST_LIB_DIRECTORY=$(cd .. && pwd)
+		fi
+	fi
+	if test -z "$TEST_LIB_DIRECTORY"
+	then
+		echo >&2 "ERROR: fail to detect TEST_LIB_DIRECTORY, you may like to use bash"
+		echo >&2 "ERROR: as the default shell, or put the test framework files in"
+		echo >&2 "ERROR: lib/ direcotory."
+		exit 1
+	fi
+else
+	TEST_LIB_DIRECTORY="$(cd "$TEST_LIB_DIRECTORY" && pwd)"
+fi
+export TEST_LIB_DIRECTORY
 
 # Prepend a string to a VAR using an arbitrary ":" delimiter, not
 # adding the delimiter if VAR or VALUE is empty. I.e. a generalized:
@@ -233,10 +265,10 @@ parse_option () {
 		tee=t
 		;;
 	--write-junit-xml)
-		. "$TEST_DIRECTORY/test-lib-junit.sh"
+		. "$TEST_LIB_DIRECTORY/test-lib-junit.sh"
 		;;
 	--github-workflow-markup)
-		. "$TEST_DIRECTORY/test-lib-github-workflow-markup.sh"
+		. "$TEST_LIB_DIRECTORY/test-lib-github-workflow-markup.sh"
 		;;
 	--stress)
 		stress=t ;;
@@ -828,7 +860,7 @@ trap '{ code=$?; set +x; } 2>/dev/null; exit $code' INT TERM HUP
 
 # The user-facing functions are loaded from a separate file so that
 # test_perf subshells can have them too
-. "$TEST_DIRECTORY/test-lib-functions.sh"
+. "$TEST_LIB_DIRECTORY/test-lib-functions.sh"
 
 # You are not expected to call test_ok_ and test_failure_ directly, use
 # the test_expect_* functions instead.
@@ -1434,7 +1466,7 @@ then
 		base=$(basename "$1")
 		case "$base" in
 		test-*)
-			symlink_target="$TEST_DIRECTORY/helper/$base"
+			symlink_target="$TEST_LIB_DIRECTORY/helper/$base"
 			;;
 		*)
 			symlink_target="$TEST_TARGET_DIRECTORY/$base"
@@ -1458,7 +1490,7 @@ then
 	# override all git executables in TEST_DIRECTORY/..
 	GIT_VALGRIND=$TEST_DIRECTORY/valgrind
 	mkdir -p "$GIT_VALGRIND"/bin
-	for file in $TEST_TARGET_DIRECTORY/git* $TEST_DIRECTORY/helper/test-*
+	for file in $TEST_TARGET_DIRECTORY/git* $TEST_LIB_DIRECTORY/helper/test-*
 	do
 		make_valgrind_symlink $file
 	done
@@ -1487,7 +1519,7 @@ elif test -n "$GIT_TEST_INSTALLED"
 then
 	GIT_EXEC_PATH=$($GIT_TEST_INSTALLED/git --exec-path)  ||
 	error "Cannot run git from $GIT_TEST_INSTALLED."
-	PATH=$GIT_TEST_INSTALLED:$TEST_DIRECTORY/helper:$PATH
+	PATH=$GIT_TEST_INSTALLED:$TEST_LIB_DIRECTORY/helper:$PATH
 	GIT_EXEC_PATH=${GIT_TEST_EXEC_PATH:-$GIT_EXEC_PATH}
 else # normal case, use ../bin-wrappers only unless $with_dashes:
 	if test -n "$no_bin_wrappers"
@@ -1508,7 +1540,7 @@ else # normal case, use ../bin-wrappers only unless $with_dashes:
 	GIT_EXEC_PATH=$TEST_TARGET_DIRECTORY
 	if test -n "$with_dashes"
 	then
-		PATH="$TEST_TARGET_DIRECTORY:$TEST_DIRECTORY/helper:$PATH"
+		PATH="$TEST_TARGET_DIRECTORY:$TEST_LIB_DIRECTORY/helper:$PATH"
 	fi
 fi
 GIT_TEMPLATE_DIR="$TEST_TARGET_DIRECTORY"/templates/blt
@@ -1533,7 +1565,7 @@ test -d "$TEST_TARGET_DIRECTORY"/templates/blt || {
 	BAIL_OUT "You haven't built things yet, have you?"
 }
 
-if ! test -x "$TEST_DIRECTORY"/helper/test-tool$X
+if ! test -x "$TEST_LIB_DIRECTORY"/helper/test-tool$X
 then
 	BAIL_OUT 'You need to build test-tool; Run "make helper/test-tool" in the source (toplevel) directory'
 fi
@@ -1618,7 +1650,7 @@ fi
 if test "${GIT_TEST_CHAIN_LINT:-1}" != 0 &&
    test "${GIT_TEST_EXT_CHAIN_LINT:-1}" != 0
 then
-	"$PERL_PATH" "$TEST_DIRECTORY/chainlint.pl" "$0" ||
+	"$PERL_PATH" "$TEST_LIB_DIRECTORY/chainlint.pl" "$0" ||
 		BUG "lint error (see '?!...!? annotations above)"
 fi
 

@@ -1,16 +1,14 @@
+TEST_LIB_DIRECTORY=.
 TEST_TARGET_DIRECTORY=..
 export TEST_TARGET_DIRECTORY
 
 # Import tree-wide shared Makefile behavior and libraries
-include ../shared.mak
+include $(TEST_LIB_DIRECTORY)/shared.mak
 
 # Run tests
 #
 # Copyright (c) 2005 Junio C Hamano
 #
-
--include ../config.mak.autogen
--include ../config.mak
 
 #GIT_TEST_OPTS = --verbose --debug
 SHELL_PATH ?= $(SHELL)
@@ -39,11 +37,10 @@ CHAINLINTTMP_SQ = $(subst ','\'',$(CHAINLINTTMP))
 
 T = $(sort $(wildcard t[0-9][0-9][0-9][0-9]-*.sh))
 THELPERS = $(sort $(filter-out $(T),$(wildcard *.sh)))
-TLIBS = $(sort $(wildcard lib-*.sh))
+TLIBS = $(sort $(wildcard $(TEST_LIB_DIRECTORY)/lib-*.sh))
 TPERF = $(sort $(wildcard perf/p[0-9][0-9][0-9][0-9]-*.sh))
-TINTEROP = $(sort $(wildcard interop/i[0-9][0-9][0-9][0-9]-*.sh))
-CHAINLINTTESTS = $(sort $(patsubst chainlint/%.test,%,$(wildcard chainlint/*.test)))
-CHAINLINT = '$(PERL_PATH_SQ)' chainlint.pl
+CHAINLINTTESTS = $(sort $(patsubst $(TEST_LIB_DIRECTORY)/chainlint/%.test,%,$(wildcard $(TEST_LIB_DIRECTORY)/chainlint/*.test)))
+CHAINLINT = '$(PERL_PATH_SQ)' $(TEST_LIB_DIRECTORY)/chainlint.pl
 
 # `test-chainlint` (which is a dependency of `test-lint`, `test` and `prove`)
 # checks all tests in all scripts via a single invocation, so tell individual
@@ -86,14 +83,14 @@ check-chainlint:
 	@mkdir -p '$(CHAINLINTTMP_SQ)' && \
 	for i in $(CHAINLINTTESTS); do \
 		echo "test_expect_success '$$i' '" && \
-		sed -e '/^# LINT: /d' chainlint/$$i.test && \
+		sed -e '/^# LINT: /d' $(TEST_LIB_DIRECTORY)/chainlint/$$i.test && \
 		echo "'"; \
 	done >'$(CHAINLINTTMP_SQ)'/tests && \
 	{ \
 		echo "# chainlint: $(CHAINLINTTMP_SQ)/tests" && \
 		for i in $(CHAINLINTTESTS); do \
 			echo "# chainlint: $$i" && \
-			sed -e '/^[ 	]*$$/d' chainlint/$$i.expect; \
+			sed -e '/^[ 	]*$$/d' $(TEST_LIB_DIRECTORY)/chainlint/$$i.expect; \
 		done \
 	} >'$(CHAINLINTTMP_SQ)'/expect && \
 	$(CHAINLINT) --emit-all '$(CHAINLINTTMP_SQ)'/tests | \
@@ -125,7 +122,7 @@ test-lint-executable:
 		echo >&2 "non-executable tests:" $$bad; exit 1; }
 
 test-lint-shell-syntax:
-	@'$(PERL_PATH_SQ)' check-non-portable-shell.pl $(T) $(THELPERS) $(TPERF)
+	@'$(PERL_PATH_SQ)' $(TEST_LIB_DIRECTORY)/check-non-portable-shell.pl $(T) $(THELPERS) $(TPERF)
 
 test-lint-filenames:
 	@# We do *not* pass a glob to ls-files but use grep instead, to catch
@@ -143,7 +140,7 @@ aggregate-results-and-cleanup: $(T)
 	$(MAKE) clean
 
 aggregate-results:
-	@'$(SHELL_PATH_SQ)' ./aggregate-results.sh '$(TEST_RESULTS_DIRECTORY_SQ)'
+	@'$(SHELL_PATH_SQ)' $(TEST_LIB_DIRECTORY)/aggregate-results.sh '$(TEST_RESULTS_DIRECTORY_SQ)'
 
 valgrind:
 	$(MAKE) GIT_TEST_OPTS="$(GIT_TEST_OPTS) --valgrind"

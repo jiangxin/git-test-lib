@@ -5,7 +5,7 @@ write_sub_test_lib_test () {
 	test_description='A test of test-lib.sh itself'
 
 	# Point to the t/test-lib.sh, which isn't in ../ as usual
-	. "\$TEST_DIRECTORY"/test-lib.sh
+	. "\$TEST_LIB_DIRECTORY"/test-lib.sh
 	EOF
 	cat >>"$name/$name.sh"
 }
