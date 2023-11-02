@@ -35,6 +35,11 @@ else
 	# needing to exist.
 	TEST_DIRECTORY=$(cd "$TEST_DIRECTORY" && pwd) || exit 1
 fi
+
+# The helper program 'test-tool' will try to find modules in
+# TEST_DIRECTORY.
+export TEST_DIRECTORY
+
 if test -z "$TEST_OUTPUT_DIRECTORY"
 then
 	# Similarly, override this to store the test-results subdir
@@ -99,6 +104,9 @@ then
 fi
 . "$GIT_BUILD_DIR"/GIT-BUILD-OPTIONS
 export PERL_PATH SHELL_PATH
+
+: "${PYTHON_PATH:=$(which python)}"
+export PYTHON_PATH
 
 # In t0000, we need to override test directories of nested testcases. In case
 # the developer has TEST_OUTPUT_DIRECTORY part of his build options, then we'd
