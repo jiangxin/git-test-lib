@@ -139,12 +139,12 @@ export LSAN_OPTIONS
 prepend_var UBSAN_OPTIONS : $GIT_SAN_OPTIONS
 export UBSAN_OPTIONS
 
-if test ! -f "$TEST_TARGET_DIRECTORY"/GIT-BUILD-OPTIONS
-then
-	echo >&2 'error: GIT-BUILD-OPTIONS missing (has Git been built?).'
-	exit 1
-fi
-. "$TEST_TARGET_DIRECTORY"/GIT-BUILD-OPTIONS
+# Default path for tools
+: "${SHELL_PATH:=/bin/sh}"
+: "${TEST_SHELL_PATH:=/bin/sh}"
+: "${PERL_PATH:=/usr/bin/perl}"
+: "${DIFF:=diff}"
+
 export PERL_PATH SHELL_PATH
 
 : "${PYTHON_PATH:=$(which python)}"
