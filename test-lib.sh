@@ -1,4 +1,4 @@
-# Test framework for git.  See t/README for usage.
+# Test framework for git.  See README for usage.
 #
 # Copyright (c) 2005 Junio C Hamano
 #
@@ -16,16 +16,16 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/ .
 
 # Test the binaries we have just built.  The tests are kept in
-# t/ subdirectory and are run in 'trash directory' subdirectory.
+# a subdirectory and are run in 'trash directory' subdirectory.
 if test -z "$TEST_DIRECTORY"
 then
 	# ensure that TEST_DIRECTORY is an absolute path so that it
 	# is valid even if the current working directory is changed
 	TEST_DIRECTORY=$(pwd)
 else
-	# The TEST_DIRECTORY will always be the path to the "t"
-	# directory in the git.git checkout. This is overridden by
-	# e.g. t/lib-subtest.sh, but only because its $(pwd) is
+	# The TEST_DIRECTORY will always be the path where the test
+	# suite exists in the checkout project. This is overridden by
+	# e.g. lib-subtest.sh, but only because its $(pwd) is
 	# different. Those tests still set "$TEST_DIRECTORY" to the
 	# same path.
 	#
@@ -51,7 +51,7 @@ fi
 # Set default value for it and export it.
 if test -z "$TEST_TARGET_DIRECTORY"
 then
-	TEST_TARGET_DIRECTORY="$(cd "${TEST_DIRECTORY%/t}" && pwd)"
+	TEST_TARGET_DIRECTORY="$(cd "$TEST_DIRECTORY/.." && pwd)"
 else
 	TEST_TARGET_DIRECTORY="$(cd "$TEST_TARGET_DIRECTORY" && pwd)"
 fi
@@ -1434,7 +1434,7 @@ then
 		base=$(basename "$1")
 		case "$base" in
 		test-*)
-			symlink_target="$TEST_TARGET_DIRECTORY/t/helper/$base"
+			symlink_target="$TEST_DIRECTORY/helper/$base"
 			;;
 		*)
 			symlink_target="$TEST_TARGET_DIRECTORY/$base"
@@ -1458,7 +1458,7 @@ then
 	# override all git executables in TEST_DIRECTORY/..
 	GIT_VALGRIND=$TEST_DIRECTORY/valgrind
 	mkdir -p "$GIT_VALGRIND"/bin
-	for file in $TEST_TARGET_DIRECTORY/git* $TEST_TARGET_DIRECTORY/t/helper/test-*
+	for file in $TEST_TARGET_DIRECTORY/git* $TEST_DIRECTORY/helper/test-*
 	do
 		make_valgrind_symlink $file
 	done
@@ -1487,7 +1487,7 @@ elif test -n "$GIT_TEST_INSTALLED"
 then
 	GIT_EXEC_PATH=$($GIT_TEST_INSTALLED/git --exec-path)  ||
 	error "Cannot run git from $GIT_TEST_INSTALLED."
-	PATH=$GIT_TEST_INSTALLED:$TEST_TARGET_DIRECTORY/t/helper:$PATH
+	PATH=$GIT_TEST_INSTALLED:$TEST_DIRECTORY/helper:$PATH
 	GIT_EXEC_PATH=${GIT_TEST_EXEC_PATH:-$GIT_EXEC_PATH}
 else # normal case, use ../bin-wrappers only unless $with_dashes:
 	if test -n "$no_bin_wrappers"
@@ -1508,7 +1508,7 @@ else # normal case, use ../bin-wrappers only unless $with_dashes:
 	GIT_EXEC_PATH=$TEST_TARGET_DIRECTORY
 	if test -n "$with_dashes"
 	then
-		PATH="$TEST_TARGET_DIRECTORY:$TEST_TARGET_DIRECTORY/t/helper:$PATH"
+		PATH="$TEST_TARGET_DIRECTORY:$TEST_DIRECTORY/helper:$PATH"
 	fi
 fi
 GIT_TEMPLATE_DIR="$TEST_TARGET_DIRECTORY"/templates/blt
@@ -1533,9 +1533,9 @@ test -d "$TEST_TARGET_DIRECTORY"/templates/blt || {
 	BAIL_OUT "You haven't built things yet, have you?"
 }
 
-if ! test -x "$TEST_TARGET_DIRECTORY"/t/helper/test-tool$X
+if ! test -x "$TEST_DIRECTORY"/helper/test-tool$X
 then
-	BAIL_OUT 'You need to build test-tool; Run "make t/helper/test-tool" in the source (toplevel) directory'
+	BAIL_OUT 'You need to build test-tool; Run "make helper/test-tool" in the source (toplevel) directory'
 fi
 
 # Are we running this test at all?
