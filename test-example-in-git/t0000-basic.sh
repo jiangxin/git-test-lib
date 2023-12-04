@@ -18,7 +18,7 @@ swapping compression and hashing order, the person who is making the
 modification *should* take notice and update the test vectors here.
 '
 
-. ./test-lib.sh
+. ../test-lib.sh
 . "$TEST_LIB_DIRECTORY"/lib-subtest.sh
 
 try_local_xy () {

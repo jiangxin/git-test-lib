@@ -5,7 +5,7 @@
 
 test_description='Test on test-tool env-helper'
 
-. ./test-lib.sh
+. ../test-lib.sh
 
 test_expect_success 'true: env set as true' '
 	env TEST_ENV_HELPER_VAR1=true \
