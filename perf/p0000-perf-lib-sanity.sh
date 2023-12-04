@@ -1,7 +1,9 @@
 #!/bin/sh
 
 test_description='Tests whether perf-lib facilities work'
-. ./perf-lib.sh
+
+. ../test-lib.sh
+. "$TEST_LIB_DIRECTORY"/perf/perf-lib.sh
 
 test_perf_default_repo
 
