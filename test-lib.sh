@@ -1557,7 +1557,7 @@ then
 
 		if test -n "$debug"
 		then
-			BAIL_OUT "sharness: loading extensions from ${file}"
+			say_color info "sharness: loading extensions from ${file}"
 		fi
 		# shellcheck disable=SC1090
 		. "${file}"
